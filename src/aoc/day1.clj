@@ -4,22 +4,16 @@
 (def lines
   (str/split (slurp "resources/day1.txt") #"\n"))
 
-(defn first-last-num [text]
-  (reduce (fn [acc cur]
-            (if (Character/isDigit cur)
-              (if (nil? (first acc))
-                [cur cur]
-                [(first acc) cur])
-              acc))
-          [nil nil]
-          (seq text)))
+(defn num-from-first-last [text]
+  (let [digits (re-seq #"\d" text)]
+    (Integer/parseInt
+     (str
+      (first digits) (last digits)))))
 
 (defn sum-all [lines proc]
   (reduce +
           0
-          (map (fn [x]
-                 (Integer/parseInt
-                  (apply str (first-last-num (proc x)))))
+          (map #(num-from-first-last (proc %))
                lines)))
 
 ; first
