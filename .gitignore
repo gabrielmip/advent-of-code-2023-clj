@@ -1,0 +1,7 @@
+.clj-kondo/
+.lein-repl-history
+.lsp/
+.nrepl-port
+project.clj
+resources/
+target/
