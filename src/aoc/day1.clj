@@ -2,7 +2,7 @@
   (:require [clojure.string :as str]))
 
 (def lines
-  (str/split (slurp "resources/day1.txt") #"\n"))
+  (str/split-lines (slurp "resources/day1.txt")))
 
 (defn num-from-first-last [text]
   (let [digits (re-seq #"\d" text)]
