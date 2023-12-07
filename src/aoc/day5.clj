@@ -1,5 +1,5 @@
 (ns aoc.day5
-  (:require [clojure.math :as math]
+  (:require [clojure.set :as cljset]
             [clojure.string :as str]))
 
 (def data
@@ -41,36 +41,91 @@
   (str/split-lines (slurp "resources/day5.txt")))
 
 (defn number-reader [text]
-  (map #(Integer/parseInt %) (re-seq #"\d+" text)))
+  ; FIXME: read-string reads as a string from the reader, implying a safe input.
+  ; Integer/parseInt was failing to read such big integers
+  (map #(read-string %) (re-seq #"\d+" text)))
 
 (defn map-reader [text]
   (let [[destination origin length] (number-reader text)]
-    [origin destination (- destination origin) length]))
+    [origin destination length]))
 
-(def maps [:seed-to-soil :soil-to-fertilizer :fertilizer-to-water :water-to-light :light-to-temperature :temperature-to-humidity :humidity-to-location])
-
-(defn try-read-mapper [text]
+(defn try-read-map-key [text]
   (keyword (first (re-seq #"[a-z\-]+" text))))
 
-(defn set-mapper [parsed mapper]
-  (assoc parsed :mapper mapper))
+(defn set-map-key [parsed map-key]
+  (assoc parsed :map-key map-key))
 
 (defn conj-entry [parsed entry]
   (assoc-in parsed
-            [:data (:mapper parsed)]
+            [:data (:map-key parsed)]
             (conj
-             (get-in parsed [:data (:mapper parsed)] [])
+             (get-in parsed [:data (:map-key parsed)] [])
              entry)))
 
 (defn read-maps [source]
   (:data (reduce
           (fn [parsed line]
-            (let [mapper (try-read-mapper line)]
+            (let [map-key (try-read-map-key line)]
               (cond
                 (= line "") parsed
-                (not (nil? mapper)) (set-mapper parsed mapper)
+                (not (nil? map-key)) (set-map-key parsed map-key)
                 :else (conj-entry parsed (map-reader line)))))
           {:data {:seeds (number-reader (first source))}}
           (drop 2 source))))
 
-(read-maps data)
+(def map-keys
+  [:seed-to-soil
+   :soil-to-fertilizer
+   :fertilizer-to-water
+   :water-to-light
+   :light-to-temperature
+   :temperature-to-humidity
+   :humidity-to-location])
+
+(defn between [item left length]
+  (and (<= left item) (>= (+ left length) item)))
+
+(defn get-mapped-value [seed mapping]
+  (or
+   (first
+    (filter (complement nil?)
+            (map (fn [[origin destination length]]
+                   (if (between seed origin length)
+                     (+ destination (- seed origin))
+                     nil))
+                 mapping)))
+   seed))
+
+(defn get-location [seed mappings]
+  (println seed)
+  (reduce
+   (fn [cur-mapped map-key]
+     (get-mapped-value cur-mapped (get mappings map-key)))
+   seed
+   map-keys))
+
+(defn find-min-location [seeds mappings]
+  (apply min (map #(get-location % mappings) seeds)))
+
+(defn part-i [source]
+  (let [mappings (read-maps source)]
+    (find-min-location (:seeds mappings) mappings)))
+
+; (= 35 (part-i data))
+; (= 177942185 (part-i lines))
+
+(defn get-ranged-seeds [seed-input]
+  (map
+   (fn [[seed length]] (range seed (+ seed length)))
+   (partition 2 seed-input)))
+
+(defn part-ii [source]
+  (let [mappings (read-maps source)
+        seed-packs (take 1 (get-ranged-seeds (:seeds mappings)))]
+    (reduce
+     (fn [cur-min pack]
+       (if (nil? cur-min)
+         (find-min-location pack mappings)
+         (min cur-min (find-min-location pack mappings))))
+     nil
+     seed-packs)))
