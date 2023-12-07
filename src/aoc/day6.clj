@@ -13,6 +13,8 @@
   (map #(Integer/parseInt %) (re-seq #"\d+" text)))
 
 (defn read-as-joined [text]
+  ; FIXME: read-string reads as a string from the reader, implying a safe input.
+  ; Integer/parseInt was failing to read such big integers
   [(read-string (apply str (re-seq #"\d+" text)))])
 
 (defn read-data [source proc]
